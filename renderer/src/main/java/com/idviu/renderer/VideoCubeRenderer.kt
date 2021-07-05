@@ -298,13 +298,6 @@ class VideoCubeRenderer(context: Context?) : GLSurfaceView.Renderer, SurfaceText
 
         private val VERTICES_DATA = VERTICES_DATA_RAW.map { it * 0.8f }.toFloatArray()
 
-        /*private val VERTICES_DATA = floatArrayOf(
-                -1.0f, -1.0f, 0f, 0.0f, 0.0f,
-                1.0f, -1.0f, 0f, 1.0f, 0.0f,
-                -1.0f, 1.0f, 0f, 0.0f, 1.0f,
-                1.0f, 1.0f, 0f, 1.0f, 1.0f
-        )*/
-
         private const val VERTEX_SHADER = """
             uniform mat4 uMVPMatrix;
             uniform mat4 uSTMatrix;
