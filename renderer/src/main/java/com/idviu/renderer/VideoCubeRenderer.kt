@@ -1,5 +1,7 @@
 package com.idviu.renderer
 
+
+import android.content.Context
 import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.opengl.GLES20
@@ -26,8 +28,13 @@ internal inline fun <T> glRun(message: String = "", block: (() -> T)): T {
     }
 }
 
-class MovieRenderer: GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableListener {
+/*
+ This class use a MediaPlayer with a SurfaceTexture to render a cube with a video texture in OpenGl
+ using GLSurfaceView protocol
+ */
+class VideoCubeRenderer(context: Context?) : GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableListener {
 
+    val context = context
     private var program = 0
     private var textureId = 0
 
@@ -83,7 +90,6 @@ class MovieRenderer: GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableList
             }
         }
 
-
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
         GLES20.glCullFace(GLES20.GL_FRONT)
@@ -117,6 +123,7 @@ class MovieRenderer: GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableList
 
 
 
+        //Make the cube rotate continuously prepare camera matrix and projection
         glRun("glUniformMatrix4fv: mvpMatrix") {
             val scratch = FloatArray(16)
 
@@ -166,6 +173,9 @@ class MovieRenderer: GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableList
         createTexture()
     }
 
+    /*
+        Create the texture using the SurfaceTexture mechanism
+     */
     private fun createTexture() {
         val textures = IntArray(1)
         GLES20.glGenTextures(1, textures, 0)
@@ -181,22 +191,26 @@ class MovieRenderer: GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableList
         val surface = Surface(surfaceTexture)
         mediaPlayer = MediaPlayer()
         mediaPlayer?.setSurface(surface)
-        mediaPlayer?.setDataSource("https://bitmovin-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8")
-        mediaPlayer?.isLooping = true
-        surface.release()
 
-        try {
-            mediaPlayer?.prepare()
-        } catch (error: IOException) {
-            Log.e("MovieRenderer", "media player prepare failed");
-            throw error
+        context?.let {
+            mediaPlayer?.setDataSource(it.getString(R.string.hls_uri))
+            mediaPlayer?.isLooping = true
+            surface.release()
+
+            try {
+                mediaPlayer?.prepare()
+            } catch (error: IOException) {
+                Log.e("MovieRenderer", "media player prepare failed");
+                throw error
+            }
+
+            synchronized(this) {
+                updateSurface = false
+            }
+
+            mediaPlayer?.start()
         }
 
-        synchronized(this) {
-            updateSurface = false
-        }
-
-        mediaPlayer?.start()
     }
 
     private fun String.attr(): Int {
@@ -224,6 +238,7 @@ class MovieRenderer: GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableList
         private const val VERTICES_UV_OFFSET = 3
 
         private val VERTICES_DATA_RAW = floatArrayOf(
+                //Front
                 1.0f, -1.0f, 1.0f, 1.0f, 0.0f, // 0
                 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, // 1
                 -1.0f, 1.0f, 1.0f, 0.0f, 1.0f, // 2
